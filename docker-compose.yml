@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   yt-dl-api:
     build:
@@ -13,6 +11,8 @@ services:
     volumes:
       - /tmp/yt-dl:/tmp/yt-dl
     restart: unless-stopped
+    networks:
+      - transcribe-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
       interval: 30s
@@ -21,28 +21,35 @@ services:
       start_period: 10s
 
   api:
-     build:
-       context: ./api
-       dockerfile: Dockerfile
-     container_name: transcribe-api
-     ports:
-       - "8000:8080"
-     environment:
-       - YT_DL_API_URL=http://yt-dl-api:8001
-     depends_on:
-       - yt-dl-api
-     restart: unless-stopped
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: transcribe-api
+    ports:
+      - "8000:8080"
+    environment:
+      - YT_DL_API_URL=http://yt-dl-api:8001
+    depends_on:
+      - yt-dl-api
+    restart: unless-stopped
+    networks:
+      - transcribe-network
 
-  # Telegram Bot Service (to be implemented)
-  # bot:
-  #   build:
-  #     context: ./bot
-  #     dockerfile: Dockerfile
-  #   container_name: transcribe-bot
-  #   environment:
-  #     - API_URL=http://api:8000
-  #   depends_on:
-  #     - api
-  #   restart: unless-stopped
-  #   networks:
-  #     - transcribe-network
+  bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    container_name: transcribe-bot
+    env_file:
+      - .env
+    environment:
+      - API_URL=http://api:8080
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - transcribe-network
+
+networks:
+  transcribe-network:
+    driver: bridge

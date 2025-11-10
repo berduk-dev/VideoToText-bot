@@ -1,0 +1,79 @@
+package handler
+
+import (
+	"bytes"
+	"encoding/json"
+	"github.com/azdaev/yt-transcribe-bot/api/internal/client"
+	"github.com/azdaev/yt-transcribe-bot/api/internal/model"
+	"github.com/gin-gonic/gin"
+	"io"
+	"log"
+	"net/http"
+	"os"
+)
+
+type Handler struct {
+}
+
+func New() Handler {
+	return Handler{}
+}
+
+func (h *Handler) TranscribeHandle(c *gin.Context) {
+	youtubeLink := c.Query("link")
+
+	reqBody := model.DownloadReq{
+		Url:    youtubeLink,
+		Format: "mp3",
+	}
+
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		log.Println("failed to marshal request: ", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	resp, err := http.Post(
+		"http://yt-dl-api:8001/download",
+		"application/json",
+		bytes.NewReader(body),
+	)
+	if err != nil {
+		log.Println("failed to send request to yt-dl-api: ", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		log.Println("yt-dl-api returned not success: ", resp.StatusCode)
+		c.Status(http.StatusInternalServerError)
+		return
+	}
+
+	out, err := os.Create("downloadedAudio.mp3")
+	if err != nil {
+		log.Println("failed to create file: ", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	defer out.Close()
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		log.Println("failed to save file: ", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	transcribedText, err := client.TranscribeAudio()
+	if err != nil {
+		log.Println("Error:", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"text": transcribedText,
+	})
+}
