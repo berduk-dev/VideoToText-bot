@@ -3,7 +3,7 @@ package service
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/azdaev/yt-transcribe-bot/bot/internal/model"
+	"github.com/berduk-dev/VideoToText-bot/bot/internal/model"
 	"io"
 	"net/http"
 	"net/url"

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/azdaev/yt-transcribe-bot/api/internal/handler"
+	"github.com/berduk-dev/VideoToText-bot/api/internal/handler"
 	"github.com/gin-gonic/gin"
 )
 

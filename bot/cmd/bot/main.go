@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/azdaev/yt-transcribe-bot/bot/internal/service"
-	"github.com/azdaev/yt-transcribe-bot/bot/internal/telegram/handler"
+	"github.com/berduk-dev/VideoToText-bot/bot/internal/service"
+	"github.com/berduk-dev/VideoToText-bot/bot/internal/telegram/handler"
 	"log"
 
 	"os"
@@ -31,7 +31,7 @@ func main() {
 
 		link := update.Message.Text
 		if strings.Contains(link, "youtube.com") {
-			go botHandler.HandleYouTubeLink(bot, update.Message.Chat.ID, link)
+			botHandler.HandleYouTubeLink(bot, update.Message.Chat.ID, link)
 		} else {
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Отправь ссылку на YouTube 🎥")
 			_, _ = bot.Send(msg)

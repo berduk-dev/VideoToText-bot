@@ -8,3 +8,7 @@ type DownloadReq struct {
 	Url    string `json:"url"`
 	Format string `json:"format"`
 }
+
+type TranscribeResp struct {
+	Text string `json:"text"`
+}

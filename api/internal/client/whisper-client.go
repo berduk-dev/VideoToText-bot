@@ -1,32 +1,67 @@
 package client
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/azdaev/yt-transcribe-bot/api/internal/model"
-	"os/exec"
+	"github.com/berduk-dev/VideoToText-bot/api/internal/model"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"os"
 )
 
-func TranscribeAudio() (string, error) {
-	cmd := exec.Command(
-		"curl",
-		"-s", // отключает информацию о процессе (silent mode)
-		"https://api.vsegpt.ru/v1/audio/transcriptions",
-		"-H", "Authorization: Bearer sk-or-vv-0479dbef3c94679a5be21969cd273b21b25dd71bb2088f1b54182eddd2f33ab6",
-		"-F", "file=@downloadedAudio.mp3",
-		"-F", "model=stt-openai/whisper-v3-turbo",
-		"-F", "response_format=json",
-	)
+func TranscribeAudio(audioData []byte) (string, error) {
+	url := "https://api.vsegpt.ru/v1/audio/transcriptions"
 
-	output, err := cmd.CombinedOutput()
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+
+	fileWriter, err := writer.CreateFormFile("file", "audio.mp3")
 	if err != nil {
-		return "", fmt.Errorf("error command - TranscribeAudio: %w", err)
+		return "", fmt.Errorf("error CreateFormFile: %w", err)
 	}
 
-	var resp model.WhisperResponse
-	if err := json.Unmarshal(output, &resp); err != nil {
-		return "", fmt.Errorf("error parsing JSON: %w", err)
+	_, err = io.Copy(fileWriter, bytes.NewReader(audioData))
+	if err != nil {
+		return "", fmt.Errorf("error Copy - TranscribeAudio: %w", err)
 	}
 
-	return resp.Text, nil
+	_ = writer.WriteField("model", "stt-openai/whisper-v3-turbo")
+	_ = writer.WriteField("response_format", "json")
+
+	_ = writer.Close()
+
+	req, err := http.NewRequest(http.MethodPost, url, &body)
+	if err != nil {
+		return "", fmt.Errorf("error api request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req.Header.Set("Authorization", "Bearer "+os.Getenv("VSEGPT_API_KEY"))
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("error client.Do: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("error reading resp body: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("vsegpt API error (status %d): %s", resp.StatusCode, string(respBody))
+	}
+
+	var transcribeResp model.TranscribeResp
+
+	err = json.Unmarshal(respBody, &transcribeResp)
+	if err != nil {
+		return "", fmt.Errorf("error parsing json response: %w (body: %s)", err, string(respBody))
+	}
+
+	return transcribeResp.Text, nil
 }

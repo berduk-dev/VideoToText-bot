@@ -22,13 +22,14 @@ services:
 
   api:
     build:
-      context: ./api
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./api/Dockerfile
     container_name: transcribe-api
     ports:
       - "8000:8080"
     environment:
       - YT_DL_API_URL=http://yt-dl-api:8001
+      - VSEGPT_API_KEY=${VSEGPT_API_KEY}
     depends_on:
       - yt-dl-api
     restart: unless-stopped
@@ -37,8 +38,8 @@ services:
 
   bot:
     build:
-      context: ./bot
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./bot/Dockerfile
     container_name: transcribe-bot
     env_file:
       - .env
