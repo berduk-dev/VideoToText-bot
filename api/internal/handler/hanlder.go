@@ -1,28 +1,36 @@
 package handler
 
 import (
-	"github.com/berduk-dev/VideoToText-bot/api/internal/client"
+	"github.com/berduk-dev/VideoToText-bot/api/internal/client/whisper"
+	"github.com/berduk-dev/VideoToText-bot/api/internal/client/yt-dl"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 )
 
 type Handler struct {
+	WhisperClient *whisper.Client
+	YtdlClient    *yt_dl.Client
 }
 
-func New() Handler {
-	return Handler{}
+func New(whisperClient *whisper.Client, ytdlClient *yt_dl.Client) Handler {
+	return Handler{
+		WhisperClient: whisperClient,
+		YtdlClient:    ytdlClient,
+	}
 }
 
 func (h *Handler) TranscribeHandle(c *gin.Context) {
-	audioData, err := client.DownloadAudio(c)
+	link := c.Query("link")
+
+	audioData, err := h.YtdlClient.DownloadAudio(c, link)
 	if err != nil {
 		log.Println("error client.DownloadAudio:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	transcribedText, err := client.TranscribeAudio(audioData)
+	transcribedText, err := h.WhisperClient.TranscribeAudio(c, audioData)
 	if err != nil {
 		log.Println("error client.TranscribeAudio:", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

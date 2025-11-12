@@ -28,8 +28,9 @@ services:
     ports:
       - "8000:8080"
     environment:
-      - YT_DL_API_URL=http://yt-dl-api:8001
-      - VSEGPT_API_KEY=${VSEGPT_API_KEY}
+      - WHISPER_URL=${WHISPER_URL}
+      - YTDL_URL=${YTDL_URL}
+      - WHISPER_API_KEY=${WHISPER_API_KEY}
     depends_on:
       - yt-dl-api
     restart: unless-stopped
@@ -44,7 +45,7 @@ services:
     env_file:
       - .env
     environment:
-      - API_URL=http://api:8080
+      - GO_API_URL=${GO_API_URL}
     depends_on:
       - api
     restart: unless-stopped

@@ -18,9 +18,9 @@ func New() Serivce {
 }
 
 func (s *Serivce) GetTranscription(link string) (string, error) {
-	apiURL := os.Getenv("API_URL")
+	apiURL := os.Getenv("GO_API_URL")
 	if apiURL == "" {
-		return "", fmt.Errorf("API_URL is empty")
+		return "", fmt.Errorf("GO_API_URL is empty")
 	}
 
 	fullURL := fmt.Sprintf("%s/transcribe?link=%s", apiURL, url.QueryEscape(link))

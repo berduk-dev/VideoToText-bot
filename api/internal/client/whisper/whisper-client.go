@@ -1,18 +1,35 @@
-package client
+package whisper
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/berduk-dev/VideoToText-bot/api/internal/model"
 	"io"
 	"mime/multipart"
 	"net/http"
-	"os"
+	"time"
 )
 
-func TranscribeAudio(audioData []byte) (string, error) {
-	url := "https://api.vsegpt.ru/v1/audio/transcriptions"
+type Client struct {
+	ApiKey     string
+	BaseURL    string
+	HttpClient *http.Client
+}
+
+func New(apiKey string, baseUrl string, timeout time.Duration) *Client {
+	return &Client{
+		ApiKey:  apiKey,
+		BaseURL: baseUrl,
+		HttpClient: &http.Client{
+			Timeout: timeout,
+		},
+	}
+}
+
+func (c *Client) TranscribeAudio(ctx context.Context, audioData []byte) (string, error) {
+	suffix := "/v1/audio/transcriptions"
 
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
@@ -32,16 +49,15 @@ func TranscribeAudio(audioData []byte) (string, error) {
 
 	_ = writer.Close()
 
-	req, err := http.NewRequest(http.MethodPost, url, &body)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.BaseURL+suffix, &body)
 	if err != nil {
 		return "", fmt.Errorf("error api request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
-	req.Header.Set("Authorization", "Bearer "+os.Getenv("VSEGPT_API_KEY"))
+	req.Header.Set("Authorization", "Bearer "+c.ApiKey)
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := c.HttpClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("error client.Do: %w", err)
 	}
