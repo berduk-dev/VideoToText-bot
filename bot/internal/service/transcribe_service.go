@@ -3,37 +3,27 @@ package service
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/berduk-dev/VideoToText-bot/bot/internal/client"
 	"github.com/berduk-dev/VideoToText-bot/bot/internal/model"
-	"io"
-	"net/http"
 	"net/url"
-	"os"
 )
 
-type Serivce struct {
+type Service struct {
+	Client *client.Client
 }
 
-func New() Serivce {
-	return Serivce{}
-}
-
-func (s *Serivce) GetTranscription(link string) (string, error) {
-	apiURL := os.Getenv("GO_API_URL")
-	if apiURL == "" {
-		return "", fmt.Errorf("GO_API_URL is empty")
+func New(client *client.Client) Service {
+	return Service{
+		Client: client,
 	}
+}
 
-	fullURL := fmt.Sprintf("%s/transcribe?link=%s", apiURL, url.QueryEscape(link))
+func (s *Service) GetTranscription(link string) (string, error) {
+	fullURL := fmt.Sprintf("%s/transcribe?link=%s", s.Client.BaseURL, url.QueryEscape(link))
 
-	resp, err := http.Post(fullURL, "application/json", nil)
+	resp, err := s.Client.Request(fullURL)
 	if err != nil {
-		return "", fmt.Errorf("failed to send request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("api returned %d: %s", resp.StatusCode, string(body))
+		return "", fmt.Errorf("error s.Client.Request: %w", err)
 	}
 
 	var result model.TranscribeResponse
@@ -41,6 +31,7 @@ func (s *Serivce) GetTranscription(link string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to parse json: %w", err)
 	}
+	defer resp.Body.Close()
 
 	return result.Text, nil
 }

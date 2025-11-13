@@ -2,8 +2,9 @@ package main
 
 import (
 	"github.com/berduk-dev/VideoToText-bot/api/internal/client/whisper"
-	yt_dl "github.com/berduk-dev/VideoToText-bot/api/internal/client/yt-dl"
+	ytdl "github.com/berduk-dev/VideoToText-bot/api/internal/client/yt-dl"
 	"github.com/berduk-dev/VideoToText-bot/api/internal/handler"
+	"github.com/berduk-dev/VideoToText-bot/api/internal/service"
 	"github.com/gin-gonic/gin"
 	"os"
 	"time"
@@ -17,8 +18,9 @@ func main() {
 	r := gin.Default()
 
 	whisperClient := whisper.New(os.Getenv("WHISPER_API_KEY"), os.Getenv("WHISPER_URL"), timeout)
-	ytdlClient := yt_dl.New(os.Getenv("YTDL_URL"), timeout)
-	apiHandler := handler.New(whisperClient, ytdlClient)
+	ytdlClient := ytdl.New(os.Getenv("YTDL_URL"), timeout)
+	apiService := service.New(whisperClient, ytdlClient)
+	apiHandler := handler.New(apiService)
 
 	r.POST("/transcribe", apiHandler.TranscribeHandle)
 

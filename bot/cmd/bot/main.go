@@ -1,14 +1,20 @@
 package main
 
 import (
+	"github.com/berduk-dev/VideoToText-bot/bot/internal/client"
 	"github.com/berduk-dev/VideoToText-bot/bot/internal/service"
 	"github.com/berduk-dev/VideoToText-bot/bot/internal/telegram/handler"
 	"log"
+	"time"
 
 	"os"
 	"strings"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+)
+
+const (
+	timeout = 5 * time.Minute
 )
 
 func main() {
@@ -21,7 +27,12 @@ func main() {
 	u.Timeout = 60
 	updates := bot.GetUpdatesChan(u)
 
-	botService := service.New()
+	botClient, err := client.New(os.Getenv("GO_API_URL"), timeout)
+	if err != nil {
+		log.Fatalf("failed creating client: %v", err)
+	}
+
+	botService := service.New(botClient)
 	botHandler := handler.New(&botService)
 
 	for update := range updates {
