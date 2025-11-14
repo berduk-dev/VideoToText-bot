@@ -1,15 +1,19 @@
 package client
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/berduk-dev/VideoToText-bot/bot/internal/model"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 )
 
 type Client struct {
-	BaseURL    string
-	HttpClient *http.Client
+	baseURL    string
+	httpClient *http.Client
 }
 
 func New(baseURL string, timeout time.Duration) (*Client, error) {
@@ -18,23 +22,34 @@ func New(baseURL string, timeout time.Duration) (*Client, error) {
 	}
 
 	return &Client{
-		BaseURL: baseURL,
-		HttpClient: &http.Client{
+		baseURL: baseURL,
+		httpClient: &http.Client{
 			Timeout: timeout,
 		},
 	}, nil
 }
 
-func (c *Client) Request(fullURL string) (*http.Response, error) {
-	resp, err := http.Post(fullURL, "application/json", nil)
+func (c *Client) TranscribeAudio(ctx context.Context, link string) (string, error) {
+	fullURL := fmt.Sprintf("%s/transcribe?link=%s", c.baseURL, url.QueryEscape(link))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, fullURL, nil)
+
+	resp, err := c.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
+		return "", fmt.Errorf("failed to send request to go-api: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("api returned %d: %s", resp.StatusCode, string(body))
+		return "", fmt.Errorf("api returned %d: %s", resp.StatusCode, string(body))
 	}
 
-	return resp, nil
+	var result model.TranscribeResponse
+	err = json.NewDecoder(resp.Body).Decode(&result)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse json: %w", err)
+	}
+	defer resp.Body.Close()
+
+	return result.Text, nil
 }

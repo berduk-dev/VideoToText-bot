@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"github.com/berduk-dev/VideoToText-bot/bot/internal/client"
 	"github.com/berduk-dev/VideoToText-bot/bot/internal/service"
 	"github.com/berduk-dev/VideoToText-bot/bot/internal/telegram/handler"
@@ -42,7 +43,7 @@ func main() {
 
 		link := update.Message.Text
 		if strings.Contains(link, "youtube.com") {
-			botHandler.HandleYouTubeLink(bot, update.Message.Chat.ID, link)
+			botHandler.HandleYouTubeLink(context.Background(), bot, update.Message.Chat.ID, link)
 		} else {
 			msg := tgbotapi.NewMessage(update.Message.Chat.ID, "Отправь ссылку на YouTube 🎥")
 			_, _ = bot.Send(msg)
